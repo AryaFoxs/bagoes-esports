@@ -17,19 +17,29 @@ import {
   Loader2,
   Check,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { signUp, signOut } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
 
   const passwordRequirements = [
-    { label: "Minimal 8 karakter", met: password.length >= 8 },
-    { label: "Huruf besar", met: /[A-Z]/.test(password) },
-    { label: "Huruf kecil", met: /[a-z]/.test(password) },
-    { label: "Angka", met: /[0-9]/.test(password) },
+    { label: "Minimal 8 karakter", met: formData.password.length >= 8 },
+    { label: "Huruf besar", met: /[A-Z]/.test(formData.password) },
+    { label: "Huruf kecil", met: /[a-z]/.test(formData.password) },
+    { label: "Angka", met: /[0-9]/.test(formData.password) },
   ];
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -37,11 +47,28 @@ export default function RegisterPage() {
     setIsLoading(true);
     setError("");
 
-    // Simulate registration
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    // Validate password confirmation
+    if (formData.password !== formData.confirmPassword) {
+      setError("Password dan konfirmasi password tidak cocok");
+      setIsLoading(false);
+      return;
+    }
+
+    const { error } = await signUp(formData.email, formData.password, {
+      username: formData.username,
+      full_name: `${formData.firstName} ${formData.lastName}`.trim(),
+    });
+
+    if (error) {
+      setError(error);
+      setIsLoading(false);
+      return;
+    }
+
+    // Sign out immediately after registration to prevent auto-login
+    await signOut();
     
-    // For demo purposes, just redirect to home
-    router.push("/");
+    router.push("/login?registered=true");
   };
 
   return (
@@ -67,13 +94,23 @@ export default function RegisterPage() {
                 <label className="block text-sm font-medium mb-2">
                   Nama Depan
                 </label>
-                <Input placeholder="Nama" required />
+                <Input
+                  placeholder="Nama"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  required
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Nama Belakang
                 </label>
-                <Input placeholder="Belakang" required />
+                <Input
+                  placeholder="Belakang"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  required
+                />
               </div>
             </div>
 
@@ -84,6 +121,8 @@ export default function RegisterPage() {
                 <Input
                   placeholder="username_kamu"
                   className="pl-10"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   required
                 />
               </div>
@@ -97,6 +136,8 @@ export default function RegisterPage() {
                   type="email"
                   placeholder="email@contoh.com"
                   className="pl-10"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
                 />
               </div>
@@ -110,8 +151,8 @@ export default function RegisterPage() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Buat password"
                   className="pl-10 pr-10"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
                 />
                 <button
@@ -128,7 +169,7 @@ export default function RegisterPage() {
               </div>
 
               {/* Password Requirements */}
-              {password && (
+              {formData.password && (
                 <div className="grid grid-cols-2 gap-2 mt-3">
                   {passwordRequirements.map((req) => (
                     <div
@@ -146,6 +187,53 @@ export default function RegisterPage() {
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Konfirmasi Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Ulangi password"
+                  className={`pl-10 pr-20 ${
+                    formData.confirmPassword && formData.password !== formData.confirmPassword
+                      ? "border-destructive focus:border-destructive"
+                      : formData.confirmPassword && formData.password === formData.confirmPassword
+                      ? "border-accent focus:border-accent"
+                      : ""
+                  }`}
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  required
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                  {formData.confirmPassword && (
+                    <>
+                      {formData.password === formData.confirmPassword ? (
+                        <Check className="w-4 h-4 text-accent" />
+                      ) : (
+                        <span className="text-destructive text-sm">✕</span>
+                      )}
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                <p className="text-xs text-destructive mt-1">Password tidak cocok</p>
               )}
             </div>
 

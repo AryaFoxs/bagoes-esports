@@ -1,6 +1,6 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
-  Gamepad2,
   Twitter,
   Instagram,
   Youtube,
@@ -52,13 +52,22 @@ export function Footer() {
               href="/"
               className="flex items-center gap-2 group mb-4"
             >
-              <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center shadow-md">
-                <Gamepad2 className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 rounded-lg overflow-hidden shadow-md">
+                <Image
+                  src="/logo.png"
+                  alt="Bagoes Esports Logo"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <span className="font-bold text-xl tracking-tight">
-                <span className="gradient-text">Bagoes</span>
-                <span className="text-foreground"> Esports</span>
-              </span>
+              <div className="flex flex-col leading-tight">
+                <span className="font-extrabold text-xl tracking-tight uppercase">
+                  <span className="gradient-text">Bagoes</span>
+                  <span className="text-foreground"> Esports</span>
+                </span>
+                <span className="text-xs font-normal text-muted-foreground uppercase" style={{ letterSpacing: '0.3em' }}>Organizer</span>
+              </div>
             </Link>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6 max-w-sm">
               Platform esports terdepan untuk mengelola event, turnamen, dan

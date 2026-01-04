@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Bell,
   User,
@@ -21,8 +23,17 @@ interface UserHeaderProps {
 }
 
 export function UserHeader({ onMenuClick }: UserHeaderProps) {
+  const router = useRouter();
+  const { signOut, profile } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    await signOut();
+    router.push("/");
+  };
 
   const notifications = [
     {
@@ -178,9 +189,13 @@ export function UserHeader({ onMenuClick }: UserHeaderProps) {
                   Pengaturan
                 </Link>
                 <hr className="my-2 border-border" />
-                <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors">
+                <button 
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                >
                   <LogOut className="w-4 h-4" />
-                  Keluar
+                  {isLoggingOut ? "Keluar..." : "Keluar"}
                 </button>
               </div>
             </div>

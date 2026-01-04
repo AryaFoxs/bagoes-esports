@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   User,
@@ -18,7 +20,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Gamepad2,
   LogOut,
 } from "lucide-react";
 
@@ -82,7 +83,16 @@ const menuItems = [
 
 export function UserSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    await signOut();
+    router.push("/");
+  };
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
@@ -101,8 +111,14 @@ export function UserSidebar() {
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-border">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center">
-            <Gamepad2 className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 rounded-lg overflow-hidden">
+            <Image
+              src="/logo.png"
+              alt="Bagoes Esports Logo"
+              width={40}
+              height={40}
+              className="w-full h-full object-cover"
+            />
           </div>
           {!collapsed && (
             <span className="font-bold text-lg">
@@ -144,13 +160,15 @@ export function UserSidebar() {
       {/* Logout */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
         <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
           className={cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full",
+            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full disabled:opacity-50",
             collapsed && "justify-center"
           )}
         >
           <LogOut className="w-5 h-5 shrink-0" />
-          {!collapsed && <span>Keluar</span>}
+          {!collapsed && <span>{isLoggingOut ? "Keluar..." : "Keluar"}</span>}
         </button>
       </div>
     </aside>

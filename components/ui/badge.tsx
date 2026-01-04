@@ -3,24 +3,26 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+  "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition-all backdrop-blur-xl shadow-sm",
   {
     variants: {
       variant: {
         default:
-          "bg-primary/20 text-primary border border-primary/30",
+          "bg-primary/60 text-white border border-primary/70 shadow-primary/30",
         secondary:
-          "bg-secondary/20 text-secondary border border-secondary/30",
+          "bg-secondary/40 text-white border border-secondary/50",
         success:
-          "bg-accent/20 text-accent border border-accent/30",
+          "bg-accent/40 text-white border border-accent/50",
         warning:
-          "bg-warning/20 text-warning border border-warning/30",
+          "bg-warning/40 text-white border border-warning/50",
         destructive:
-          "bg-destructive/20 text-destructive border border-destructive/30",
+          "bg-destructive/40 text-white border border-destructive/50",
         outline:
-          "border border-border text-foreground",
+          "bg-black/30 border border-white/30 text-white",
         live:
-          "bg-destructive text-destructive-foreground animate-pulse",
+          "bg-destructive text-destructive-foreground animate-pulse shadow-lg shadow-destructive/30",
+        game:
+          "bg-black/40 text-white border border-white/30 backdrop-blur-xl",
       },
     },
     defaultVariants: {

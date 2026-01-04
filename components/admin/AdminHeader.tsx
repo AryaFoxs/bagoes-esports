@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Search,
   Bell,
@@ -20,8 +22,17 @@ interface AdminHeaderProps {
 }
 
 export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
+  const router = useRouter();
+  const { signOut } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    await signOut();
+    router.push("/");
+  };
 
   const notifications = [
     { id: 1, title: "Pendaftaran event baru", time: "5 menit lalu", unread: true },
@@ -135,9 +146,13 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
                   <Settings className="w-4 h-4" />
                   Pengaturan
                 </Link>
-                <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors">
+                <button 
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                >
                   <LogOut className="w-4 h-4" />
-                  Keluar
+                  {isLoggingOut ? "Keluar..." : "Keluar"}
                 </button>
               </div>
             </div>

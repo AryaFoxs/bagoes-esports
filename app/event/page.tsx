@@ -179,13 +179,23 @@ export default function EventPage() {
                 >
                   <CardContent className="p-6">
                     <div className="flex flex-col lg:flex-row gap-6">
-                      <div className="w-full lg:w-48 h-32 rounded-xl bg-muted flex items-center justify-center">
-                        <Trophy className="w-12 h-12 text-primary" />
+                      <div className="w-full lg:w-48 h-32 rounded-xl bg-muted overflow-hidden relative">
+                        {event.image ? (
+                          <img 
+                            src={event.image} 
+                            alt={event.title}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full">
+                            <Trophy className="w-12 h-12 text-primary" />
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           {getStatusBadge(event.status)}
-                          <Badge variant="secondary">{event.game}</Badge>
+                          <Badge variant="game">{event.game}</Badge>
                           <Badge variant="outline">{getTypeLabel(event.type)}</Badge>
                         </div>
                         <h3 className="text-xl font-bold mb-2">{event.title}</h3>
@@ -242,14 +252,18 @@ export default function EventPage() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {upcomingEvents.map((event) => (
                 <Card key={event.id} hover className="overflow-hidden group">
-                  <div className="aspect-video bg-muted relative">
-                    <div className="absolute inset-0 gradient-primary opacity-60" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Trophy className="w-16 h-16 text-white/50" />
-                    </div>
+                  <div className="aspect-video bg-muted relative overflow-hidden">
+                    {event.image && (
+                      <img 
+                        src={event.image} 
+                        alt={event.title}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
                     <div className="absolute top-3 left-3 flex gap-2">
                       {getStatusBadge(event.status)}
-                      <Badge variant="secondary">{event.game}</Badge>
+                      <Badge variant="game">{event.game}</Badge>
                     </div>
                     {event.isOnline && (
                       <Badge className="absolute top-3 right-3" variant="outline">
@@ -313,11 +327,19 @@ export default function EventPage() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {completedEvents.map((event) => (
                 <Card key={event.id} className="overflow-hidden opacity-80 hover:opacity-100 transition-opacity">
-                  <div className="aspect-video bg-muted relative grayscale">
-                    <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted/50" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Trophy className="w-16 h-16 text-muted-foreground/50" />
-                    </div>
+                  <div className="aspect-video bg-muted relative grayscale overflow-hidden">
+                    {event.image ? (
+                      <img 
+                        src={event.image} 
+                        alt={event.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Trophy className="w-16 h-16 text-muted-foreground/50" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
                     <Badge className="absolute top-3 left-3" variant="outline">
                       Selesai
                     </Badge>

@@ -1,4 +1,4 @@
-import { Gamepad2 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function AuthLayout({
@@ -16,8 +16,14 @@ export default function AuthLayout({
         
         <div className="relative z-10 flex flex-col items-center justify-center w-full p-12">
           <Link href="/" className="flex items-center gap-3 mb-8">
-            <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
-              <Gamepad2 className="w-8 h-8 text-white" />
+            <div className="w-14 h-14 rounded-xl overflow-hidden shadow-lg">
+              <Image
+                src="/logo.png"
+                alt="Bagoes Esports Logo"
+                width={56}
+                height={56}
+                className="w-full h-full object-cover"
+              />
             </div>
             <span className="font-bold text-2xl">
               <span className="gradient-text">Bagoes</span> Esports
@@ -58,8 +64,14 @@ export default function AuthLayout({
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center">
-                <Gamepad2 className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 rounded-lg overflow-hidden">
+                <Image
+                  src="/logo.png"
+                  alt="Bagoes Esports Logo"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <span className="font-bold text-xl">
                 <span className="gradient-text">Bagoes</span> Esports

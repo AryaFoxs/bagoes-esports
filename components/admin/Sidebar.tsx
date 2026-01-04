@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -18,7 +19,6 @@ import {
   Database,
   ChevronLeft,
   ChevronRight,
-  Gamepad2,
 } from "lucide-react";
 
 const menuItems = [
@@ -123,8 +123,14 @@ export function Sidebar() {
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-border">
         <Link href="/admin" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center">
-            <Gamepad2 className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 rounded-lg overflow-hidden">
+            <Image
+              src="/logo.png"
+              alt="Bagoes Esports Logo"
+              width={40}
+              height={40}
+              className="w-full h-full object-cover"
+            />
           </div>
           {!collapsed && (
             <span className="font-bold text-lg">

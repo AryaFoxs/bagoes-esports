@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,24 +14,84 @@ import {
   EyeOff,
   LogIn,
   Loader2,
+  User,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { signIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [identifier, setIdentifier] = useState(""); // can be email or username
+  const [password, setPassword] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    // Simulate login
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    let loginEmail = identifier;
     
-    // For demo purposes, just redirect to home
-    router.push("/");
+    // Check if identifier is not an email (no @ symbol)
+    if (!identifier.includes("@")) {
+      // It's a username, lookup the email from profiles
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      
+      const { data: profile, error: lookupError } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("username", identifier)
+        .single();
+      
+      if (lookupError || !profile || !profile.email) {
+        setError("Username tidak ditemukan atau tidak memiliki email terdaftar");
+        setIsLoading(false);
+        return;
+      }
+
+      loginEmail = profile.email;
+    }
+
+    const { error } = await signIn(loginEmail, password);
+    
+    if (error) {
+      setError(error);
+      setIsLoading(false);
+      return;
+    }
+
+    // Wait for profile to be loaded after signIn
+    // Check user role from profile to determine redirect
+    const customRedirect = searchParams.get("redirect");
+    if (customRedirect) {
+      router.push(customRedirect);
+      return;
+    }
+
+    // Fetch profile to check role
+    const { createClient } = await import("@/lib/supabase/client");
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      
+      if (profile?.role === "admin" || profile?.role === "superadmin") {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
+    } else {
+      router.push("/dashboard");
+    }
   };
 
   return (
@@ -46,6 +106,12 @@ export default function LoginPage() {
       <Card>
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {searchParams.get("registered") === "true" && (
+              <div className="p-3 rounded-lg bg-accent/10 border border-accent/30 text-accent text-sm">
+                ✓ Pendaftaran berhasil! Silakan login dengan akun yang baru dibuat.
+              </div>
+            )}
+            
             {error && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
                 {error}
@@ -53,13 +119,19 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium mb-2">Email</label>
+              <label className="block text-sm font-medium mb-2">Email atau Username</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                {identifier.includes("@") ? (
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                ) : (
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                )}
                 <Input
-                  type="email"
-                  placeholder="email@contoh.com"
+                  type="text"
+                  placeholder="email@contoh.com atau username"
                   className="pl-10"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   required
                 />
               </div>
@@ -81,6 +153,8 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Masukkan password"
                   className="pl-10 pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                 />
                 <button
