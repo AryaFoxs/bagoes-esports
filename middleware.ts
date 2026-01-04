@@ -2,13 +2,21 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Skip middleware if environment variables are not set
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -46,10 +54,6 @@ export async function middleware(request: NextRequest) {
   const authRoutes = ["/login", "/register"];
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
-  // Admin routes - require admin role (you can check profile role from user metadata)
-  const adminRoutes = ["/admin"];
-  const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
-
   // Redirect to login if accessing protected route without authentication
   if (isProtectedRoute && !user) {
     const redirectUrl = new URL("/login", request.url);
@@ -61,19 +65,6 @@ export async function middleware(request: NextRequest) {
   if (isAuthRoute && user) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
-
-  // Check admin access (optional - can be configured based on user metadata or roles table)
-  // if (isAdminRoute && user) {
-  //   const { data: profile } = await supabase
-  //     .from("profiles")
-  //     .select("role")
-  //     .eq("id", user.id)
-  //     .single();
-  //
-  //   if (profile?.role !== "admin") {
-  //     return NextResponse.redirect(new URL("/dashboard", request.url));
-  //   }
-  // }
 
   return supabaseResponse;
 }
