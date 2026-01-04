@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types/database.types";
-import type { User } from "@supabase/supabase-js";
+import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchProfile = useCallback(async (userId: string) => {
+    if (!supabase) return;
+    
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -25,6 +27,7 @@ export function useUser() {
 
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return { error: "Not authenticated" };
+    if (!supabase) return { error: "Client not initialized" };
 
     const { error } = await supabase
       .from("profiles")
@@ -39,6 +42,8 @@ export function useUser() {
   };
 
   const signIn = async (email: string, password: string) => {
+    if (!supabase) return { data: null, error: "Client not initialized" };
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -47,6 +52,8 @@ export function useUser() {
   };
 
   const signUp = async (email: string, password: string, metadata?: { username?: string; full_name?: string }) => {
+    if (!supabase) return { data: null, error: "Client not initialized" };
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -58,6 +65,8 @@ export function useUser() {
   };
 
   const signOut = async () => {
+    if (!supabase) return { error: "Client not initialized" };
+    
     const { error } = await supabase.auth.signOut();
     if (!error) {
       setUser(null);
@@ -67,6 +76,11 @@ export function useUser() {
   };
 
   useEffect(() => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
@@ -79,7 +93,7 @@ export function useUser() {
     getUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event: AuthChangeEvent, session: Session | null) => {
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);

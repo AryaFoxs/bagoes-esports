@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Notification } from "@/lib/types/database.types";
 
@@ -8,10 +8,10 @@ export function useNotifications(userId: string | undefined) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchNotifications = useCallback(async () => {
-    if (!userId) {
+    if (!userId || !supabase) {
       setLoading(false);
       return;
     }
@@ -26,7 +26,7 @@ export function useNotifications(userId: string | undefined) {
 
     if (!error && data) {
       setNotifications(data);
-      setUnreadCount(data.filter((n) => !n.read).length);
+      setUnreadCount(data.filter((n: Notification) => !n.read).length);
     }
     setLoading(false);
   }, [supabase, userId]);
@@ -69,7 +69,7 @@ export function useNotifications(userId: string | undefined) {
     fetchNotifications();
 
     // Subscribe to new notifications
-    if (userId) {
+    if (userId && supabase) {
       const channel = supabase
         .channel("notifications")
         .on(
@@ -80,7 +80,7 @@ export function useNotifications(userId: string | undefined) {
             table: "notifications",
             filter: `user_id=eq.${userId}`,
           },
-          (payload) => {
+          (payload: { new: Notification }) => {
             const newNotification = payload.new as Notification;
             setNotifications((prev) => [newNotification, ...prev]);
             setUnreadCount((prev) => prev + 1);
