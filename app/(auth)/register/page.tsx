@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
   const { signUp, signOut } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
@@ -327,5 +327,21 @@ export default function RegisterPage() {
         </Link>
       </p>
     </div>
+  );
+}
+
+function RegisterLoading() {
+  return (
+    <div className="flex items-center justify-center p-12">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<RegisterLoading />}>
+      <RegisterForm />
+    </Suspense>
   );
 }
