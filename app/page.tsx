@@ -172,14 +172,26 @@ export default function Home() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {upcomingEvents.map((event, index) => (
               <Card key={event.id} hover className="overflow-hidden group">
-                <div className="aspect-video bg-muted relative">
-                  <div className="absolute inset-0 gradient-primary opacity-60" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Trophy className="w-12 h-12 text-white/80" />
+                <div className="aspect-video bg-muted relative overflow-hidden">
+                  {event.image ? (
+                    <img 
+                      src={event.image} 
+                      alt={event.title}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 gradient-primary opacity-60" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Trophy className="w-12 h-12 text-white/80" />
+                      </div>
+                    </>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                  <div className="absolute top-3 left-3 flex gap-2">
+                    <Badge variant="default">Akan Datang</Badge>
+                    <Badge variant="game">{event.game}</Badge>
                   </div>
-                  <Badge className="absolute top-3 left-3" variant="secondary">
-                    {event.game}
-                  </Badge>
                 </div>
                 <CardContent className="p-5">
                   <h3 className="font-bold text-lg mb-2 group-hover:text-primary transition-colors">
