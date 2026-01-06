@@ -251,64 +251,66 @@ export default function EventPage() {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {upcomingEvents.map((event) => (
-                <Card key={event.id} hover className="overflow-hidden group">
-                  <div className="aspect-video bg-muted relative overflow-hidden">
-                    {event.image && (
-                      <img 
-                        src={event.image} 
-                        alt={event.title}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-                    <div className="absolute top-3 left-3 flex gap-2">
-                      {getStatusBadge(event.status)}
-                      <Badge variant="game">{event.game}</Badge>
-                    </div>
-                    {event.isOnline && (
-                      <Badge className="absolute top-3 right-3" variant="outline">
-                        <Globe className="w-3 h-3 mr-1" />
-                        Online
-                      </Badge>
-                    )}
-                  </div>
-                  <CardContent className="p-5">
-                    <h3 className="font-bold text-lg mb-2 group-hover:text-primary transition-colors">
-                      {event.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                      {event.description}
-                    </p>
-
-                    <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        {new Date(event.date).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        {event.location}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        {event.currentParticipants}/{event.maxParticipants} peserta
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      {event.prizePool && (
-                        <Badge variant="success">{event.prizePool}</Badge>
+                <Link key={event.id} href={`/event/${event.slug}`}>
+                  <Card hover className="overflow-hidden group h-full">
+                    <div className="aspect-video bg-muted relative overflow-hidden">
+                      {event.image && (
+                        <img 
+                          src={event.image} 
+                          alt={event.title}
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
                       )}
-                      <Button size="sm" variant="gradient" className="gap-1">
-                        Daftar <ChevronRight className="w-4 h-4" />
-                      </Button>
+                      <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                      <div className="absolute top-3 left-3 flex gap-2">
+                        {getStatusBadge(event.status)}
+                        <Badge variant="game">{event.game}</Badge>
+                      </div>
+                      {event.isOnline && (
+                        <Badge className="absolute top-3 right-3" variant="outline">
+                          <Globe className="w-3 h-3 mr-1" />
+                          Online
+                        </Badge>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
+                    <CardContent className="p-5">
+                      <h3 className="font-bold text-lg mb-2 group-hover:text-primary transition-colors">
+                        {event.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                        {event.description}
+                      </p>
+
+                      <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          {new Date(event.date).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          {event.location}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          {event.currentParticipants}/{event.maxParticipants} peserta
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        {event.prizePool && (
+                          <Badge variant="success">{event.prizePool}</Badge>
+                        )}
+                        <Button size="sm" variant="gradient" className="gap-1">
+                          Daftar <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
           </div>

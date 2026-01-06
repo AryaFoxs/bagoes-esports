@@ -5,6 +5,7 @@ export const events: Event[] = [
   // === TOURNAMENT EVENTS ===
   {
     id: "evt-001",
+    slug: "esports-world-cup-2025",
     title: "Esports World Cup 2025",
     description: "Turnamen global yang mempertemukan tim-tim terbaik dunia dalam berbagai game esports.",
     game: "Multi-Game",
@@ -23,6 +24,7 @@ export const events: Event[] = [
   },
   {
     id: "evt-002",
+    slug: "mobile-legends-m7-world-championship",
     title: "Mobile Legends M7 World Championship",
     description: "Kompetisi Mobile Legends tingkat dunia dengan tim-tim terbaik dari setiap region.",
     game: "Mobile Legends",
@@ -40,6 +42,7 @@ export const events: Event[] = [
   },
   {
     id: "evt-003",
+    slug: "free-fire-world-series-sea-2025",
     title: "Free Fire World Series SEA 2025",
     description: "Turnamen Free Fire terbesar di Asia Tenggara dengan hadiah fantastis.",
     game: "Free Fire",
@@ -57,6 +60,7 @@ export const events: Event[] = [
   },
   {
     id: "evt-004",
+    slug: "pubg-mobile-global-championship-2025",
     title: "PUBG Mobile Global Championship 2025",
     description: "Kejuaraan dunia PUBG Mobile dengan tim-tim profesional dari seluruh dunia.",
     game: "PUBG Mobile",
@@ -74,6 +78,7 @@ export const events: Event[] = [
   },
   {
     id: "evt-005",
+    slug: "mobile-legends-m6-world-championship",
     title: "Mobile Legends M6 World Championship",
     description: "Turnamen M6 yang sudah selesai dengan juara ECHO dari Filipina.",
     game: "Mobile Legends",
@@ -92,6 +97,7 @@ export const events: Event[] = [
   // === KASUAL/CASUAL EVENTS ===
   {
     id: "evt-006",
+    slug: "liga-mahasiswa-esports-2025",
     title: "Liga Mahasiswa Esports 2025",
     description: "Kompetisi esports antar universitas untuk membangun komunitas gaming di kampus.",
     game: "Multi-Game",
@@ -109,6 +115,7 @@ export const events: Event[] = [
   },
   {
     id: "evt-007",
+    slug: "liga-pelajar-indonesia-2025",
     title: "Liga Pelajar Indonesia 2025",
     description: "Turnamen esports untuk pelajar SMP dan SMA di seluruh Indonesia.",
     game: "Mobile Legends",
@@ -126,6 +133,7 @@ export const events: Event[] = [
   },
   {
     id: "evt-008",
+    slug: "liga-mahasiswa-esports-2024",
     title: "Liga Mahasiswa Esports 2024",
     description: "Kompetisi tahun lalu yang sukses diikuti oleh 180 kampus.",
     game: "Multi-Game",
@@ -144,6 +152,7 @@ export const events: Event[] = [
   // === MEETUP EVENTS ===
   {
     id: "evt-009",
+    slug: "meet-and-greet-onic-esports",
     title: "Meet and Greet ONIC Esports",
     description: "Kesempatan bertemu langsung dengan para pemain ONIC Esports dan dapatkan merchandise eksklusif.",
     game: "Mobile Legends",
@@ -160,6 +169,7 @@ export const events: Event[] = [
   },
   {
     id: "evt-010",
+    slug: "vct-pacific-fan-meet",
     title: "VCT Pacific Fan Meet",
     description: "Meet and greet dengan pemain-pemain Valorant dari tim VCT Pacific.",
     game: "Valorant",
@@ -176,6 +186,7 @@ export const events: Event[] = [
   },
   {
     id: "evt-011",
+    slug: "mobile-legends-community-gathering",
     title: "Mobile Legends Community Gathering",
     description: "Acara gathering komunitas Mobile Legends dengan berbagai aktivitas seru.",
     game: "Mobile Legends",
@@ -193,6 +204,7 @@ export const events: Event[] = [
   // === WORKSHOP EVENTS ===
   {
     id: "evt-012",
+    slug: "workshop-art-of-cosplay",
     title: "Workshop: Art of Cosplay",
     description: "Pelajari seni cosplay dari karakter game favorit Anda bersama cosplayer profesional.",
     game: "General",
@@ -209,6 +221,7 @@ export const events: Event[] = [
   },
   {
     id: "evt-013",
+    slug: "workshop-branding-in-esports",
     title: "Workshop: Branding in Esports",
     description: "Pelajari strategi branding dan marketing untuk tim esports dari para ahli industri.",
     game: "General",
@@ -225,6 +238,7 @@ export const events: Event[] = [
   },
   {
     id: "evt-014",
+    slug: "workshop-how-to-set-up-the-stage",
     title: "Workshop: How to Set Up The Stage",
     description: "Workshop teknis tentang setup panggung dan production untuk event esports.",
     game: "General",
@@ -241,6 +255,7 @@ export const events: Event[] = [
   },
   {
     id: "evt-015",
+    slug: "workshop-nurturing-leadership-in-esports",
     title: "Workshop: Nurturing Leadership in Esports",
     description: "Kembangkan skill leadership Anda untuk memimpin tim esports menuju kemenangan.",
     game: "General",
