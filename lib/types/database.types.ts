@@ -100,6 +100,36 @@ export interface Favorite {
   created_at: string;
 }
 
+export interface Article {
+  id: string;
+  title: string;
+  slug: string;
+  content: string | null;
+  excerpt: string | null;
+  featured_image: string | null;
+  category: string;
+  author_id: string | null;
+  status: "draft" | "published" | "archived";
+  views: number;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  author?: Profile;
+}
+
+export interface Media {
+  id: string;
+  filename: string;
+  original_name: string;
+  file_path: string;
+  file_type: string;
+  file_size: number;
+  alt_text: string | null;
+  uploaded_by: string | null;
+  created_at: string;
+}
+
 // Database types for Supabase client
 export interface Database {
   public: {

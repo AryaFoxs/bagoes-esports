@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useSidebar } from "@/contexts/SidebarContext";
 import {
   LayoutDashboard,
   Users,
@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useState } from "react";
 
 const menuItems = [
   {
@@ -95,7 +96,7 @@ const menuItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, toggleCollapsed } = useSidebar();
   const [openSubmenus, setOpenSubmenus] = useState<string[]>([]);
 
   const toggleSubmenu = (title: string) => {
@@ -139,7 +140,7 @@ export function Sidebar() {
           )}
         </Link>
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={toggleCollapsed}
           className="p-2 rounded-lg hover:bg-muted transition-colors"
         >
           {collapsed ? (

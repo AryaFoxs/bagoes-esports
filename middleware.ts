@@ -54,6 +54,9 @@ export async function middleware(request: NextRequest) {
   const authRoutes = ["/login", "/register"];
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
+  // Admin routes - require admin or superadmin role
+  const isAdminRoute = pathname.startsWith("/admin");
+
   // Redirect to login if accessing protected route without authentication
   if (isProtectedRoute && !user) {
     const redirectUrl = new URL("/login", request.url);
@@ -64,6 +67,20 @@ export async function middleware(request: NextRequest) {
   // Redirect to dashboard if accessing auth routes while authenticated
   if (isAuthRoute && user) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Check admin access - only allow admin or superadmin roles
+  if (isAdminRoute && user) {
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    // If profile fetch fails or role is not admin/superadmin, redirect to dashboard
+    if (error || !profile || (profile.role !== "admin" && profile.role !== "superadmin")) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
   }
 
   return supabaseResponse;
