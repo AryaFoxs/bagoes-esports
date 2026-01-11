@@ -8,6 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Mail,
   Lock,
   User,
@@ -16,6 +22,8 @@ import {
   UserPlus,
   Loader2,
   Check,
+  X,
+  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -25,6 +33,8 @@ function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     firstName: "",
@@ -246,13 +256,21 @@ function RegisterForm() {
               />
               <label htmlFor="terms" className="text-sm text-muted-foreground">
                 Saya setuju dengan{" "}
-                <Link href="/terms" className="text-primary hover:underline">
+                <button
+                  type="button"
+                  onClick={() => setShowTermsModal(true)}
+                  className="text-primary hover:underline"
+                >
                   Syarat & Ketentuan
-                </Link>{" "}
+                </button>{" "}
                 dan{" "}
-                <Link href="/privacy" className="text-primary hover:underline">
+                <button
+                  type="button"
+                  onClick={() => setShowPrivacyModal(true)}
+                  className="text-primary hover:underline"
+                >
                   Kebijakan Privasi
-                </Link>
+                </button>
               </label>
             </div>
 
@@ -326,6 +344,92 @@ function RegisterForm() {
           Masuk
         </Link>
       </p>
+
+      {/* Terms & Conditions Modal */}
+      <Dialog open={showTermsModal} onOpenChange={setShowTermsModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              📜 Syarat & Ketentuan
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Terakhir diperbarui: 1 Januari 2026</p>
+            
+            <h4 className="font-bold text-foreground">1. Penerimaan Ketentuan</h4>
+            <p>
+              Dengan mengakses dan menggunakan layanan Bagoes Esports, Anda setuju untuk terikat dengan syarat dan ketentuan ini. Jika Anda tidak setuju, mohon untuk tidak menggunakan layanan kami.
+            </p>
+            
+            <h4 className="font-bold text-foreground">2. Penggunaan Layanan</h4>
+            <p>
+              Anda harus berusia minimal 13 tahun untuk menggunakan layanan ini. Anda bertanggung jawab untuk menjaga kerahasiaan akun Anda dan semua aktivitas yang terjadi di bawah akun Anda.
+            </p>
+            
+            <h4 className="font-bold text-foreground">3. Konten Pengguna</h4>
+            <p>
+              Anda mempertahankan kepemilikan konten yang Anda unggah, namun Anda memberikan kami lisensi untuk menggunakan, menampilkan, dan mendistribusikan konten tersebut di platform kami.
+            </p>
+            
+            <h4 className="font-bold text-foreground">4. Perilaku yang Dilarang</h4>
+            <p>
+              Dilarang melakukan tindakan yang melanggar hukum, menyebarkan konten berbahaya, melakukan penipuan, atau mengganggu pengguna lain.
+            </p>
+            
+            <div className="pt-4 border-t">
+              <Button variant="outline" className="gap-2" asChild>
+                <Link href="/terms">
+                  <ExternalLink className="w-4 h-4" />
+                  Baca Selengkapnya
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Privacy Policy Modal */}
+      <Dialog open={showPrivacyModal} onOpenChange={setShowPrivacyModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              🔒 Kebijakan Privasi
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Terakhir diperbarui: 1 Januari 2026</p>
+            
+            <h4 className="font-bold text-foreground">1. Informasi yang Kami Kumpulkan</h4>
+            <p>
+              Kami mengumpulkan informasi yang Anda berikan secara langsung, seperti nama, email, dan informasi profil. Kami juga mengumpulkan data penggunaan secara otomatis.
+            </p>
+            
+            <h4 className="font-bold text-foreground">2. Penggunaan Informasi</h4>
+            <p>
+              Informasi Anda digunakan untuk menyediakan layanan, mengirim notifikasi, meningkatkan pengalaman pengguna, dan berkomunikasi dengan Anda.
+            </p>
+            
+            <h4 className="font-bold text-foreground">3. Berbagi Informasi</h4>
+            <p>
+              Kami tidak menjual informasi pribadi Anda kepada pihak ketiga. Informasi hanya dibagikan dengan penyedia layanan yang membantu operasional kami.
+            </p>
+            
+            <h4 className="font-bold text-foreground">4. Keamanan Data</h4>
+            <p>
+              Kami menerapkan langkah-langkah keamanan untuk melindungi informasi pribadi Anda dari akses, perubahan, atau pengungkapan yang tidak sah.
+            </p>
+            
+            <div className="pt-4 border-t">
+              <Button variant="outline" className="gap-2" asChild>
+                <Link href="/privacy">
+                  <ExternalLink className="w-4 h-4" />
+                  Baca Selengkapnya
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

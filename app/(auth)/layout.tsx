@@ -25,9 +25,13 @@ export default function AuthLayout({
                 className="w-full h-full object-cover"
               />
             </div>
-            <span className="font-bold text-2xl">
-              <span className="gradient-text">Bagoes</span> Esports
-            </span>
+            <div className="flex flex-col leading-tight">
+              <span className="font-extrabold text-2xl tracking-tight uppercase">
+                <span className="gradient-text">Bagoes</span>
+                <span className="text-foreground"> Esports</span>
+              </span>
+              <span className="text-xs font-normal text-muted-foreground uppercase" style={{ letterSpacing: '0.3em' }}>Organizer</span>
+            </div>
           </Link>
           
           <div className="text-center max-w-md">
@@ -73,9 +77,13 @@ export default function AuthLayout({
                   className="w-full h-full object-cover"
                 />
               </div>
-              <span className="font-bold text-xl">
-                <span className="gradient-text">Bagoes</span> Esports
-              </span>
+              <div className="flex flex-col leading-tight">
+                <span className="font-extrabold text-xl tracking-tight uppercase">
+                  <span className="gradient-text">Bagoes</span>
+                  <span className="text-foreground"> Esports</span>
+                </span>
+                <span className="text-[10px] font-normal text-muted-foreground uppercase" style={{ letterSpacing: '0.25em' }}>Organizer</span>
+              </div>
             </Link>
           </div>
 

@@ -21,7 +21,7 @@ INSERT INTO events (slug, title, description, game, location_type, format, start
  60000000000, -- $60 Million in Rupiah equivalent (mock)
  0, 
  '/event/tournament/EWC 2025.webp', 
- 'live', 
+ 'live',
  (SELECT id FROM profiles LIMIT 1));
 
 -- 2. Mobile Legends M7 World Championship (UPCOMING)

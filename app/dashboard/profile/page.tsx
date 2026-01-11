@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,16 +27,17 @@ import {
 export default function ProfilePage() {
   const { user, profile, refreshProfile, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   
   // Password form states
   const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
@@ -120,6 +121,71 @@ export default function ProfilePage() {
     setSaveError(null);
   };
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !supabase) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setSaveError("File harus berupa gambar");
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setSaveError("Ukuran file maksimal 2MB");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setSaveError(null);
+
+    try {
+      // Create unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from("public")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        setSaveError("Gagal mengupload gambar: " + uploadError.message);
+        setIsUploadingAvatar(false);
+        return;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("public")
+        .getPublicUrl(filePath);
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: urlData.publicUrl })
+        .eq("id", user.id);
+
+      if (updateError) {
+        setSaveError("Gagal menyimpan avatar: " + updateError.message);
+      } else {
+        await refreshProfile();
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      }
+    } catch (err) {
+      setSaveError("Terjadi kesalahan saat mengupload avatar");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const handleChangePassword = async () => {
     if (!supabase) return;
     
@@ -144,11 +210,17 @@ export default function ProfilePage() {
       });
 
       if (error) {
-        setPasswordError(error.message);
+        // Handle specific errors
+        if (error.message.includes("same")) {
+          setPasswordError("Password baru tidak boleh sama dengan password lama");
+        } else if (error.message.includes("weak")) {
+          setPasswordError("Password terlalu lemah. Gunakan kombinasi huruf, angka, dan simbol");
+        } else {
+          setPasswordError(error.message);
+        }
       } else {
         setPasswordSuccess(true);
         setPasswordData({
-          currentPassword: "",
           newPassword: "",
           confirmPassword: "",
         });
@@ -184,6 +256,15 @@ export default function ProfilePage() {
 
   return (
     <div>
+      {/* Hidden file input for avatar upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleAvatarChange}
+        accept="image/*"
+        className="hidden"
+      />
+
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
@@ -226,8 +307,17 @@ export default function ProfilePage() {
                         {displayName.charAt(0).toUpperCase()}
                       </span>
                     )}
+                    {isUploadingAvatar && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
+                        <Loader2 className="w-6 h-6 animate-spin text-white" />
+                      </div>
+                    )}
                   </div>
-                  <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors">
+                  <button 
+                    onClick={handleAvatarClick}
+                    disabled={isUploadingAvatar}
+                    className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
                     <Camera className="w-4 h-4" />
                   </button>
                 </div>
@@ -427,7 +517,6 @@ export default function ProfilePage() {
                     setPasswordError(null);
                     setPasswordSuccess(false);
                     setPasswordData({
-                      currentPassword: "",
                       newPassword: "",
                       confirmPassword: "",
                     });
