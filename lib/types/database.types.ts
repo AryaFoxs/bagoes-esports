@@ -34,6 +34,7 @@ export interface Event {
   prize_pool: number;
   status: "upcoming" | "live" | "completed" | "cancelled";
   image_url: string | null;
+  rules: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
