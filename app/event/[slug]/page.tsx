@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClient } from "@/lib/supabase/client";
-import { events } from "@/lib/data";
+import type { Event } from "@/lib/types/database.types";
 import {
   Trophy,
   Calendar,
@@ -20,43 +20,85 @@ import {
   XCircle,
   Loader2,
   Globe,
-  Wallet,
   Gamepad2,
   Timer,
   UserPlus,
   AlertCircle,
+  DollarSign,
 } from "lucide-react";
 
 interface EventDetailProps {
   params: Promise<{ slug: string }>;
 }
 
+// Format currency helper
+const formatCurrency = (amount: number) => {
+  if (amount >= 1000000000) return `Rp ${(amount / 1000000000).toFixed(1)}M`;
+  if (amount >= 1000000) return `Rp ${(amount / 1000000).toFixed(1)} Juta`;
+  if (amount >= 1000) return `Rp ${(amount / 1000).toFixed(0)} Ribu`;
+  return `Rp ${amount.toLocaleString("id-ID")}`;
+};
+
 function EventDetailContent({ slug }: { slug: string }) {
   const router = useRouter();
   const { user, profile, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
-  
+
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState<string | null>(null);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [participantCount, setParticipantCount] = useState(0);
-  
-  // Get event from local data (later will be from database)
-  const event = events.find((e) => e.slug === slug);
+
+  // Fetch event from database
+  useEffect(() => {
+    const fetchEvent = async () => {
+      if (!supabase) return;
+
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .eq("slug", slug)
+        .single();
+
+      if (error) {
+        console.error("Error fetching event:", error);
+        setEvent(null);
+      } else {
+        setEvent(data);
+        
+        // Get participant count
+        const { count } = await supabase
+          .from("event_registrations")
+          .select("*", { count: "exact", head: true })
+          .eq("event_id", data.id)
+          .neq("status", "cancelled");
+        
+        setParticipantCount(count || 0);
+      }
+      
+      setLoading(false);
+    };
+
+    fetchEvent();
+  }, [slug, supabase]);
 
   // Check if user is already registered
   useEffect(() => {
     const checkRegistration = async () => {
       if (!user || !event || !supabase) return;
-      
+
       const { data, error } = await supabase
         .from("event_registrations")
         .select("status")
         .eq("event_id", event.id)
         .eq("user_id", user.id)
         .single();
-      
+
       if (data && !error) {
         setRegistrationStatus(data.status);
       }
@@ -64,25 +106,6 @@ function EventDetailContent({ slug }: { slug: string }) {
 
     checkRegistration();
   }, [user, event, supabase]);
-
-  // Get participant count
-  useEffect(() => {
-    const getParticipantCount = async () => {
-      if (!event || !supabase) return;
-      
-      const { count, error } = await supabase
-        .from("event_registrations")
-        .select("*", { count: "exact", head: true })
-        .eq("event_id", event.id)
-        .neq("status", "cancelled");
-      
-      if (!error && count !== null) {
-        setParticipantCount(count);
-      }
-    };
-
-    getParticipantCount();
-  }, [event, supabase]);
 
   const handleRegister = async () => {
     if (!user) {
@@ -141,6 +164,16 @@ function EventDetailContent({ slug }: { slug: string }) {
     }
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen pt-24 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Not found state
   if (!event) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center">
@@ -155,7 +188,7 @@ function EventDetailContent({ slug }: { slug: string }) {
   }
 
   const isRegistered = registrationStatus && registrationStatus !== "cancelled";
-  const isFull = participantCount >= event.maxParticipants;
+  const isFull = participantCount >= (event.max_participants || 0);
   const canRegister = event.status === "upcoming" && !isRegistered && !isFull;
 
   const getStatusBadge = (status: string) => {
@@ -166,6 +199,8 @@ function EventDetailContent({ slug }: { slug: string }) {
         return <Badge variant="default">Akan Datang</Badge>;
       case "completed":
         return <Badge variant="outline">Selesai</Badge>;
+      case "cancelled":
+        return <Badge variant="destructive">Dibatalkan</Badge>;
       default:
         return null;
     }
@@ -205,6 +240,9 @@ function EventDetailContent({ slug }: { slug: string }) {
     }
   };
 
+  const isOnline = event.location_type === "online";
+  const eventDate = event.start_date ? new Date(event.start_date) : null;
+
   return (
     <div className="min-h-screen pt-24 pb-12">
       <div className="container mx-auto px-4 lg:px-8">
@@ -221,9 +259,9 @@ function EventDetailContent({ slug }: { slug: string }) {
           <div className="lg:col-span-2 space-y-6">
             {/* Hero Image */}
             <div className="aspect-video rounded-2xl overflow-hidden bg-muted relative">
-              {event.image ? (
+              {event.image_url ? (
                 <img
-                  src={event.image}
+                  src={event.image_url}
                   alt={event.title}
                   className="w-full h-full object-cover"
                 />
@@ -233,10 +271,10 @@ function EventDetailContent({ slug }: { slug: string }) {
                 </div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent" />
-              <div className="absolute bottom-4 left-4 flex gap-2">
+              <div className="absolute bottom-4 left-4 flex gap-2 flex-wrap">
                 {getStatusBadge(event.status)}
                 <Badge variant="game">{event.game}</Badge>
-                {event.isOnline && (
+                {isOnline && (
                   <Badge variant="outline" className="gap-1">
                     <Globe className="w-3 h-3" />
                     Online
@@ -251,7 +289,7 @@ function EventDetailContent({ slug }: { slug: string }) {
                 {event.title}
               </h1>
               <p className="text-muted-foreground text-lg">
-                {event.description}
+                {event.description || "Tidak ada deskripsi"}
               </p>
             </div>
 
@@ -267,11 +305,13 @@ function EventDetailContent({ slug }: { slug: string }) {
                     <div>
                       <p className="text-sm text-muted-foreground">Tanggal</p>
                       <p className="font-medium">
-                        {new Date(event.date).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
+                        {eventDate
+                          ? eventDate.toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })
+                          : "TBA"}
                       </p>
                     </div>
                   </div>
@@ -282,7 +322,9 @@ function EventDetailContent({ slug }: { slug: string }) {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Lokasi</p>
-                      <p className="font-medium">{event.location}</p>
+                      <p className="font-medium">
+                        {event.location || (isOnline ? "Online" : "TBA")}
+                      </p>
                     </div>
                   </div>
 
@@ -292,7 +334,7 @@ function EventDetailContent({ slug }: { slug: string }) {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Game</p>
-                      <p className="font-medium">{event.game}</p>
+                      <p className="font-medium">{event.game || "General"}</p>
                     </div>
                   </div>
 
@@ -303,7 +345,7 @@ function EventDetailContent({ slug }: { slug: string }) {
                     <div>
                       <p className="text-sm text-muted-foreground">Peserta</p>
                       <p className="font-medium">
-                        {participantCount}/{event.maxParticipants}
+                        {participantCount}/{event.max_participants || "∞"}
                       </p>
                     </div>
                   </div>
@@ -317,7 +359,7 @@ function EventDetailContent({ slug }: { slug: string }) {
                         Total Hadiah
                       </p>
                       <p className="font-medium text-accent">
-                        {event.prizePool || "TBA"}
+                        {event.prize_pool ? formatCurrency(event.prize_pool) : "TBA"}
                       </p>
                     </div>
                   </div>
@@ -327,13 +369,27 @@ function EventDetailContent({ slug }: { slug: string }) {
                       <Timer className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Tipe</p>
-                      <p className="font-medium capitalize">{event.type}</p>
+                      <p className="text-sm text-muted-foreground">Format</p>
+                      <p className="font-medium capitalize">
+                        {event.format?.replace(/_/g, " ") || "TBA"}
+                      </p>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Rules */}
+            {event.rules && (
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-bold mb-4">Peraturan Event</h2>
+                  <div className="prose prose-sm max-w-none text-muted-foreground">
+                    <pre className="whitespace-pre-wrap font-sans">{event.rules}</pre>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar - Registration */}
@@ -395,13 +451,17 @@ function EventDetailContent({ slug }: { slug: string }) {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-muted-foreground">Biaya Pendaftaran</span>
                     <span className="font-bold text-lg">
-                      {event.prizePool ? "Gratis" : "Gratis"}
+                      {event.registration_fee
+                        ? formatCurrency(event.registration_fee)
+                        : "Gratis"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Slot Tersisa</span>
                     <span className="font-bold">
-                      {Math.max(0, event.maxParticipants - participantCount)}
+                      {event.max_participants
+                        ? Math.max(0, event.max_participants - participantCount)
+                        : "∞"}
                     </span>
                   </div>
                 </div>
@@ -495,7 +555,7 @@ function LoadingState() {
 
 export default async function EventDetailPage({ params }: EventDetailProps) {
   const { slug } = await params;
-  
+
   return (
     <Suspense fallback={<LoadingState />}>
       <EventDetailContent slug={slug} />

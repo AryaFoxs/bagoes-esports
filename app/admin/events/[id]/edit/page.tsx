@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import type { Event } from "@/lib/types/database.types";
 import {
   Calendar,
   Save,
@@ -19,6 +19,7 @@ import {
   CheckCircle,
   Upload,
   X,
+  Plus,
 } from "lucide-react";
 
 // Category options for events
@@ -41,65 +42,18 @@ const gameOptions = [
   "League of Legends",
   "Counter-Strike 2",
   "eFootball",
-  "FIFA",
-  "Tekken 8",
-  "Street Fighter 6",
-  "Apex Legends",
-  "Fortnite",
-  "Overwatch 2",
   "Multi-Game",
   "General",
 ];
 
-// Format options based on category
-const formatOptions = {
-  Tournament: [
-    { value: "single_elimination", label: "Single Elimination" },
-    { value: "double_elimination", label: "Double Elimination" },
-    { value: "round_robin", label: "Round Robin" },
-    { value: "swiss", label: "Swiss System" },
-    { value: "battle_royale", label: "Battle Royale" },
-  ],
-  Workshop: [
-    { value: "hands_on", label: "Hands-On Practice" },
-    { value: "demonstration", label: "Demonstration" },
-    { value: "interactive", label: "Interactive Session" },
-  ],
-  Webinar: [
-    { value: "presentation", label: "Presentasi" },
-    { value: "panel_discussion", label: "Panel Discussion" },
-    { value: "qa_session", label: "Q&A Session" },
-  ],
-  "Meet Up": [
-    { value: "networking", label: "Networking" },
-    { value: "casual", label: "Casual Gathering" },
-    { value: "community", label: "Community Event" },
-  ],
-  Bootcamp: [
-    { value: "intensive", label: "Intensive Training" },
-    { value: "modular", label: "Modular Sessions" },
-  ],
-  Exhibition: [
-    { value: "showcase", label: "Showcase" },
-    { value: "demo_day", label: "Demo Day" },
-  ],
-};
-
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .trim();
-}
-
-export default function NewEventPage() {
+export default function EditEventPage() {
+  const params = useParams();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const { user } = useAuth();
+  const eventId = params.id as string;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -120,21 +74,55 @@ export default function NewEventPage() {
     registrationFee: 0,
     imageUrl: "",
     rules: "",
+    status: "upcoming",
   });
 
-  // Get available formats based on selected categories
-  const getAvailableFormats = () => {
-    const formats: { value: string; label: string }[] = [];
-    formData.categories.forEach((cat) => {
-      const catFormats = formatOptions[cat as keyof typeof formatOptions] || [];
-      catFormats.forEach((f) => {
-        if (!formats.find((ef) => ef.value === f.value)) {
-          formats.push(f);
-        }
+  // Fetch existing event data
+  useEffect(() => {
+    const fetchEvent = async () => {
+      if (!eventId) return;
+
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .eq("id", eventId)
+        .single();
+
+      if (error || !data) {
+        console.error("Error fetching event:", error);
+        router.push("/admin/events");
+        return;
+      }
+
+      // Parse game field - could be single value or comma-separated
+      const games = data.game ? data.game.split(",").map((g: string) => g.trim()) : [];
+      
+      // For now, use game as category too (we'll improve this later)
+      const categories = data.format ? [categoryOptions.find(c => c.value.toLowerCase() === data.format)?.value || "Tournament"] : ["Tournament"];
+
+      setFormData({
+        title: data.title || "",
+        description: data.description || "",
+        categories: categories,
+        games: games,
+        locationType: data.location_type || "online",
+        format: data.format || "single_elimination",
+        startDate: data.start_date ? new Date(data.start_date).toISOString().slice(0, 16) : "",
+        endDate: data.end_date ? new Date(data.end_date).toISOString().slice(0, 16) : "",
+        location: data.location || "",
+        maxParticipants: data.max_participants || 32,
+        prizePool: data.prize_pool || 0,
+        registrationFee: data.registration_fee || 0,
+        imageUrl: data.image_url || "",
+        rules: data.rules || "",
+        status: data.status || "upcoming",
       });
-    });
-    return formats.length > 0 ? formats : formatOptions.Tournament;
-  };
+
+      setLoading(false);
+    };
+
+    fetchEvent();
+  }, [eventId, supabase, router]);
 
   // Handle image upload
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,24 +134,25 @@ export default function NewEventPage() {
 
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `event-${Date.now()}.${fileExt}`;
+      const fileName = `event-${eventId}-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("events")
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) {
+        // If bucket doesn't exist, show friendly error
         if (uploadError.message.includes("Bucket not found")) {
-          setError("Storage belum dikonfigurasi. Silakan buat bucket 'events' di Supabase Storage, atau masukkan URL gambar secara manual.");
+          setError("Storage belum dikonfigurasi. Silakan buat bucket 'events' di Supabase Storage.");
         } else {
           setError(uploadError.message);
         }
         return;
       }
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("events").getPublicUrl(fileName);
+      const { data: { publicUrl } } = supabase.storage
+        .from("events")
+        .getPublicUrl(fileName);
 
       setFormData({ ...formData, imageUrl: publicUrl });
     } catch (err) {
@@ -173,79 +162,34 @@ export default function NewEventPage() {
     }
   };
 
-  // Add/remove game
-  const addGame = (game: string) => {
-    if (!formData.games.includes(game)) {
-      setFormData({ ...formData, games: [...formData.games, game] });
-    }
-  };
-
-  const removeGame = (game: string) => {
-    setFormData({ ...formData, games: formData.games.filter((g) => g !== game) });
-  };
-
-  // Add/remove category
-  const addCategory = (category: string) => {
-    if (!formData.categories.includes(category)) {
-      setFormData({ ...formData, categories: [...formData.categories, category] });
-    }
-  };
-
-  const removeCategory = (category: string) => {
-    setFormData({
-      ...formData,
-      categories: formData.categories.filter((c) => c !== category),
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!supabase || !user) {
-      setError("Anda harus login untuk membuat event");
-      return;
-    }
-
-    if (formData.categories.length === 0) {
-      setError("Pilih minimal satu kategori event");
-      return;
-    }
-
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const slug = generateSlug(formData.title) + "-" + Date.now();
+      const { error: updateError } = await supabase
+        .from("events")
+        .update({
+          title: formData.title,
+          description: formData.description,
+          game: formData.games.join(", "), // Store as comma-separated
+          location_type: formData.locationType,
+          format: formData.format,
+          start_date: new Date(formData.startDate).toISOString(),
+          end_date: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+          location: formData.location || (formData.locationType === "online" ? "Online" : ""),
+          max_participants: formData.maxParticipants,
+          prize_pool: formData.prizePool,
+          registration_fee: formData.registrationFee,
+          image_url: formData.imageUrl || null,
+          rules: formData.rules || null,
+          status: formData.status,
+        })
+        .eq("id", eventId);
 
-      const { error: insertError } = await supabase.from("events").insert({
-        title: formData.title,
-        slug: slug,
-        description: formData.description,
-        game: formData.games.join(", ") || "General", // Store as comma-separated
-        location_type: formData.locationType,
-        format: formData.format,
-        start_date: new Date(formData.startDate).toISOString(),
-        end_date: formData.endDate
-          ? new Date(formData.endDate).toISOString()
-          : null,
-        location:
-          formData.location ||
-          (formData.locationType === "online" ? "Online" : ""),
-        max_participants: formData.maxParticipants,
-        prize_pool: formData.prizePool,
-        registration_fee: formData.registrationFee,
-        image_url: formData.imageUrl || null,
-        rules: formData.rules || null,
-        status: "upcoming",
-        created_by: user.id,
-      });
-
-      if (insertError) {
-        if (insertError.code === "23505") {
-          setError("Event dengan judul ini sudah ada");
-        } else {
-          setError(insertError.message);
-        }
+      if (updateError) {
+        setError(updateError.message);
       } else {
         setSuccess(true);
         setTimeout(() => {
@@ -259,16 +203,46 @@ export default function NewEventPage() {
     }
   };
 
+  // Add/remove game
+  const addGame = (game: string) => {
+    if (!formData.games.includes(game)) {
+      setFormData({ ...formData, games: [...formData.games, game] });
+    }
+  };
+
+  const removeGame = (game: string) => {
+    setFormData({ ...formData, games: formData.games.filter(g => g !== game) });
+  };
+
+  // Add/remove category
+  const addCategory = (category: string) => {
+    if (!formData.categories.includes(category)) {
+      setFormData({ ...formData, categories: [...formData.categories, category] });
+    }
+  };
+
+  const removeCategory = (category: string) => {
+    setFormData({ ...formData, categories: formData.categories.filter(c => c !== category) });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div>
       <PageHeader
-        title="Tambah Event Baru"
-        description="Buat event atau turnamen baru"
+        title="Edit Event"
+        description="Ubah informasi event"
         icon={Calendar}
         breadcrumbs={[
           { label: "Dashboard", href: "/admin" },
           { label: "Event", href: "/admin/events" },
-          { label: "Tambah Baru" },
+          { label: "Edit" },
         ]}
         actions={
           <Button variant="outline" asChild>
@@ -285,7 +259,7 @@ export default function NewEventPage() {
         <div className="mb-4 p-4 rounded-lg bg-accent/10 border border-accent/30">
           <div className="flex items-center gap-2 text-accent">
             <CheckCircle className="w-5 h-5" />
-            <span>Event berhasil dibuat! Mengalihkan...</span>
+            <span>Event berhasil diperbarui! Mengalihkan...</span>
           </div>
         </div>
       )}
@@ -315,9 +289,7 @@ export default function NewEventPage() {
                     <Input
                       placeholder="Nama event atau turnamen"
                       value={formData.title}
-                      onChange={(e) =>
-                        setFormData({ ...formData, title: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                       required
                     />
                   </div>
@@ -330,9 +302,7 @@ export default function NewEventPage() {
                       placeholder="Deskripsi lengkap event..."
                       className="min-h-[120px]"
                       value={formData.description}
-                      onChange={(e) =>
-                        setFormData({ ...formData, description: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       required
                     />
                   </div>
@@ -340,7 +310,7 @@ export default function NewEventPage() {
                   {/* Categories (Multiple) */}
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      Kategori Event *
+                      Kategori Event
                     </label>
                     <div className="flex flex-wrap gap-2 mb-2">
                       {formData.categories.map((cat) => (
@@ -368,16 +338,13 @@ export default function NewEventPage() {
                     >
                       <option value="">+ Tambah Kategori</option>
                       {categoryOptions
-                        .filter((opt) => !formData.categories.includes(opt.value))
+                        .filter(opt => !formData.categories.includes(opt.value))
                         .map((opt) => (
                           <option key={opt.value} value={opt.value}>
                             {opt.label}
                           </option>
                         ))}
                     </select>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Pilih satu atau lebih kategori: Tournament, Workshop, Webinar, Meet Up, dll.
-                    </p>
                   </div>
 
                   {/* Games (Multiple) */}
@@ -411,16 +378,13 @@ export default function NewEventPage() {
                     >
                       <option value="">+ Tambah Game</option>
                       {gameOptions
-                        .filter((g) => !formData.games.includes(g))
+                        .filter(g => !formData.games.includes(g))
                         .map((game) => (
                           <option key={game} value={game}>
                             {game}
                           </option>
                         ))}
                     </select>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Kosongkan jika event bukan tentang game tertentu
-                    </p>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
@@ -430,9 +394,7 @@ export default function NewEventPage() {
                       </label>
                       <select
                         value={formData.locationType}
-                        onChange={(e) =>
-                          setFormData({ ...formData, locationType: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, locationType: e.target.value })}
                         className="w-full h-11 px-4 rounded-lg border border-border bg-background text-sm"
                       >
                         <option value="online">Online</option>
@@ -442,20 +404,17 @@ export default function NewEventPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">
-                        Format *
+                        Status
                       </label>
                       <select
-                        value={formData.format}
-                        onChange={(e) =>
-                          setFormData({ ...formData, format: e.target.value })
-                        }
+                        value={formData.status}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                         className="w-full h-11 px-4 rounded-lg border border-border bg-background text-sm"
                       >
-                        {getAvailableFormats().map((f) => (
-                          <option key={f.value} value={f.value}>
-                            {f.label}
-                          </option>
-                        ))}
+                        <option value="upcoming">Akan Datang</option>
+                        <option value="live">Berlangsung</option>
+                        <option value="completed">Selesai</option>
+                        <option value="cancelled">Dibatalkan</option>
                       </select>
                     </div>
                   </div>
@@ -468,9 +427,7 @@ export default function NewEventPage() {
                       <Input
                         type="datetime-local"
                         value={formData.startDate}
-                        onChange={(e) =>
-                          setFormData({ ...formData, startDate: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                         required
                       />
                     </div>
@@ -481,9 +438,7 @@ export default function NewEventPage() {
                       <Input
                         type="datetime-local"
                         value={formData.endDate}
-                        onChange={(e) =>
-                          setFormData({ ...formData, endDate: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                       />
                     </div>
                   </div>
@@ -498,18 +453,52 @@ export default function NewEventPage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">
+                        Format
+                      </label>
+                      <select
+                        value={formData.format}
+                        onChange={(e) => setFormData({ ...formData, format: e.target.value })}
+                        className="w-full h-11 px-4 rounded-lg border border-border bg-background text-sm"
+                      >
+                        <option value="single_elimination">Single Elimination</option>
+                        <option value="double_elimination">Double Elimination</option>
+                        <option value="round_robin">Round Robin</option>
+                        <option value="swiss">Swiss System</option>
+                        <option value="presentation">Presentasi</option>
+                        <option value="workshop">Workshop</option>
+                        <option value="networking">Networking</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
                         Maksimal Peserta
                       </label>
                       <Input
                         type="number"
                         min="1"
                         value={formData.maxParticipants}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            maxParticipants: parseInt(e.target.value) || 32,
-                          })
-                        }
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          maxParticipants: parseInt(e.target.value) || 32,
+                        })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Total Hadiah (Rp)
+                      </label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={formData.prizePool || ""}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          prizePool: parseInt(e.target.value) || 0,
+                        })}
                       />
                     </div>
                     <div>
@@ -521,35 +510,12 @@ export default function NewEventPage() {
                         min="0"
                         placeholder="0 untuk gratis"
                         value={formData.registrationFee || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            registrationFee: parseInt(e.target.value) || 0,
-                          })
-                        }
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          registrationFee: parseInt(e.target.value) || 0,
+                        })}
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Total Hadiah (Rp)
-                    </label>
-                    <Input
-                      type="number"
-                      min="0"
-                      placeholder="0 jika tidak ada hadiah"
-                      value={formData.prizePool || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          prizePool: parseInt(e.target.value) || 0,
-                        })
-                      }
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Kosongkan atau isi 0 jika event tidak memiliki hadiah
-                    </p>
                   </div>
 
                   {/* Image Upload */}
@@ -567,16 +533,14 @@ export default function NewEventPage() {
                           />
                           <button
                             type="button"
-                            onClick={() =>
-                              setFormData({ ...formData, imageUrl: "" })
-                            }
+                            onClick={() => setFormData({ ...formData, imageUrl: "" })}
                             className="absolute -top-2 -right-2 p-1 rounded-full bg-destructive text-white"
                           >
                             <X className="w-4 h-4" />
                           </button>
                         </div>
                       )}
-                      <div className="flex gap-2 flex-wrap">
+                      <div className="flex gap-2">
                         <input
                           ref={fileInputRef}
                           type="file"
@@ -605,9 +569,7 @@ export default function NewEventPage() {
                       <Input
                         placeholder="https://example.com/image.jpg"
                         value={formData.imageUrl}
-                        onChange={(e) =>
-                          setFormData({ ...formData, imageUrl: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
                       />
                     </div>
                   </div>
@@ -617,12 +579,10 @@ export default function NewEventPage() {
                       Peraturan Event
                     </label>
                     <Textarea
-                      placeholder="Tuliskan peraturan event (opsional)..."
-                      className="min-h-[120px]"
+                      placeholder="Tuliskan peraturan event..."
+                      className="min-h-[150px]"
                       value={formData.rules}
-                      onChange={(e) =>
-                        setFormData({ ...formData, rules: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
                     />
                   </div>
                 </div>
@@ -644,9 +604,7 @@ export default function NewEventPage() {
                       <Input
                         placeholder="Alamat lengkap venue"
                         value={formData.location}
-                        onChange={(e) =>
-                          setFormData({ ...formData, location: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                       />
                     </div>
                   )}
@@ -661,7 +619,7 @@ export default function NewEventPage() {
 
             <Card>
               <CardContent className="p-6">
-                <h3 className="font-bold mb-4">Publikasi</h3>
+                <h3 className="font-bold mb-4">Simpan Perubahan</h3>
                 <div className="space-y-4">
                   <Button
                     type="submit"
@@ -677,7 +635,7 @@ export default function NewEventPage() {
                     ) : (
                       <>
                         <Save className="w-4 h-4" />
-                        Simpan Event
+                        Simpan Perubahan
                       </>
                     )}
                   </Button>

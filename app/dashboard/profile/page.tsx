@@ -6,8 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClient } from "@/lib/supabase/client";
+import { changeUserPassword } from "@/lib/actions/auth";
 import {
   User,
   Mail,
@@ -30,7 +32,7 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isEditing, setIsEditing] = useState(false);
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -42,7 +44,6 @@ export default function ProfilePage() {
     confirmPassword: "",
   });
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   
   // Form data initialized from profile
@@ -107,7 +108,6 @@ export default function ProfilePage() {
   };
 
   const handleCancelEdit = () => {
-    // Reset form data to original profile values
     if (profile) {
       setFormData({
         full_name: profile.full_name || "",
@@ -148,23 +148,39 @@ export default function ProfilePage() {
       // Create unique filename
       const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
 
-      // Upload to storage
+      // Upload to storage - use "avatars" bucket directly
       const { error: uploadError } = await supabase.storage
-        .from("public")
-        .upload(filePath, file, { upsert: true });
+        .from("avatars")
+        .upload(fileName, file, { upsert: true });
 
       if (uploadError) {
-        setSaveError("Gagal mengupload gambar: " + uploadError.message);
-        setIsUploadingAvatar(false);
+        // If bucket doesn't exist, save as base64 to profile directly
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64 = reader.result as string;
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({ avatar_url: base64 })
+            .eq("id", user.id);
+          
+          if (updateError) {
+            setSaveError("Gagal menyimpan avatar");
+          } else {
+            await refreshProfile();
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+          }
+          setIsUploadingAvatar(false);
+        };
+        reader.readAsDataURL(file);
         return;
       }
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from("public")
-        .getPublicUrl(filePath);
+        .from("avatars")
+        .getPublicUrl(fileName);
 
       // Update profile with new avatar URL
       const { error: updateError } = await supabase
@@ -187,10 +203,7 @@ export default function ProfilePage() {
   };
 
   const handleChangePassword = async () => {
-    if (!supabase) return;
-    
     setPasswordError(null);
-    setPasswordSuccess(false);
 
     // Validate
     if (passwordData.newPassword.length < 6) {
@@ -204,36 +217,25 @@ export default function ProfilePage() {
 
     setIsChangingPassword(true);
 
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword,
-      });
-
-      if (error) {
-        // Handle specific errors
-        if (error.message.includes("same")) {
-          setPasswordError("Password baru tidak boleh sama dengan password lama");
-        } else if (error.message.includes("weak")) {
-          setPasswordError("Password terlalu lemah. Gunakan kombinasi huruf, angka, dan simbol");
-        } else {
-          setPasswordError(error.message);
-        }
-      } else {
-        setPasswordSuccess(true);
-        setPasswordData({
-          newPassword: "",
-          confirmPassword: "",
-        });
-        setTimeout(() => {
-          setShowPasswordForm(false);
-          setPasswordSuccess(false);
-        }, 2000);
-      }
-    } catch (err) {
-      setPasswordError("Terjadi kesalahan saat mengubah kata sandi");
-    } finally {
-      setIsChangingPassword(false);
+    const result = await changeUserPassword(passwordData.newPassword);
+    
+    if (result.success) {
+      alert("Kata sandi berhasil diubah!");
+      setShowPasswordModal(false);
+      setPasswordData({ newPassword: "", confirmPassword: "" });
+      window.location.reload();
+    } else {
+      setPasswordError(result.error || "Terjadi kesalahan");
     }
+    
+    setIsChangingPassword(false);
+  };
+
+  const closePasswordModal = () => {
+    setShowPasswordModal(false);
+    setPasswordData({ newPassword: "", confirmPassword: "" });
+    setPasswordError(null);
+    setIsChangingPassword(false);
   };
 
   if (authLoading) {
@@ -264,6 +266,75 @@ export default function ProfilePage() {
         accept="image/*"
         className="hidden"
       />
+
+      {/* Password Change Modal */}
+      <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5 text-primary" />
+              Ubah Kata Sandi
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            {passwordError && (
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                <div className="flex items-center gap-2 text-destructive text-sm">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>{passwordError}</span>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Kata Sandi Baru
+              </label>
+              <Input 
+                type="password" 
+                placeholder="Minimal 6 karakter"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Konfirmasi Kata Sandi
+              </label>
+              <Input 
+                type="password" 
+                placeholder="Ulangi kata sandi baru"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+              />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                onClick={closePasswordModal}
+                className="flex-1"
+              >
+                Batal
+              </Button>
+              <Button 
+                variant="gradient" 
+                onClick={handleChangePassword}
+                disabled={isChangingPassword}
+                className="flex-1"
+              >
+                {isChangingPassword ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  "Simpan"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Header */}
       <div className="mb-8">
@@ -501,10 +572,10 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Change Password */}
+          {/* Change Password Card */}
           <Card>
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between">
                 <h3 className="font-bold flex items-center gap-2">
                   <Lock className="w-5 h-5 text-primary" />
                   Ubah Kata Sandi
@@ -512,78 +583,11 @@ export default function ProfilePage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    setShowPasswordForm(!showPasswordForm);
-                    setPasswordError(null);
-                    setPasswordSuccess(false);
-                    setPasswordData({
-                      newPassword: "",
-                      confirmPassword: "",
-                    });
-                  }}
+                  onClick={() => setShowPasswordModal(true)}
                 >
-                  {showPasswordForm ? "Batal" : "Ubah"}
+                  Ubah
                 </Button>
               </div>
-
-              {showPasswordForm && (
-                <div className="space-y-4">
-                  {passwordError && (
-                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
-                      <div className="flex items-center gap-2 text-destructive text-sm">
-                        <AlertCircle className="w-4 h-4" />
-                        <span>{passwordError}</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {passwordSuccess && (
-                    <div className="p-3 rounded-lg bg-accent/10 border border-accent/30">
-                      <div className="flex items-center gap-2 text-accent text-sm">
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Kata sandi berhasil diubah!</span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Kata Sandi Baru
-                    </label>
-                    <Input 
-                      type="password" 
-                      placeholder="Minimal 6 karakter"
-                      value={passwordData.newPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Konfirmasi Kata Sandi
-                    </label>
-                    <Input 
-                      type="password" 
-                      placeholder="Ulangi kata sandi baru"
-                      value={passwordData.confirmPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                    />
-                  </div>
-                  <Button 
-                    variant="gradient" 
-                    onClick={handleChangePassword}
-                    disabled={isChangingPassword}
-                  >
-                    {isChangingPassword ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Menyimpan...
-                      </>
-                    ) : (
-                      "Simpan Kata Sandi"
-                    )}
-                  </Button>
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>

@@ -172,18 +172,40 @@ export default function EventsPage() {
     setIsUpdating(true);
     setUpdateError(null);
 
-    const { error } = await supabase
-      .from("events")
-      .delete()
-      .eq("id", selectedEvent.id);
+    try {
+      // First, delete related event_registrations (foreign key constraint)
+      const { error: regError } = await supabase
+        .from("event_registrations")
+        .delete()
+        .eq("event_id", selectedEvent.id);
 
-    if (error) {
-      setUpdateError(error.message);
-    } else {
-      setUpdateSuccess(`Event "${selectedEvent.title}" berhasil dihapus`);
-      setShowDeleteModal(false);
-      fetchEvents();
-      setTimeout(() => setUpdateSuccess(null), 3000);
+      if (regError) {
+        console.error("Error deleting registrations:", regError);
+        // Continue anyway, registrations might not exist
+      }
+
+      // Now delete the event
+      const { error, data } = await supabase
+        .from("events")
+        .delete()
+        .eq("id", selectedEvent.id)
+        .select();
+
+      console.log("Delete result:", { error, data });
+
+      if (error) {
+        console.error("Delete error:", error);
+        setUpdateError(`Gagal menghapus: ${error.message}. Pastikan Anda memiliki izin admin.`);
+      } else {
+        setUpdateSuccess(`Event "${selectedEvent.title}" berhasil dihapus`);
+        setShowDeleteModal(false);
+        setSelectedEvent(null);
+        fetchEvents();
+        setTimeout(() => setUpdateSuccess(null), 3000);
+      }
+    } catch (err) {
+      console.error("Delete exception:", err);
+      setUpdateError("Terjadi kesalahan saat menghapus event.");
     }
     
     setIsUpdating(false);

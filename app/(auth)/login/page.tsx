@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Mail,
   Lock,
@@ -17,16 +16,54 @@ import {
   User,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { createClient } from "@/lib/supabase/client";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signIn } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
+  
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [identifier, setIdentifier] = useState(""); // can be email or username
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+
+  // OAuth login handlers
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    setError("");
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    
+    if (error) {
+      setError(error.message);
+      setIsLoading(false);
+    }
+  };
+
+  const handleDiscordLogin = async () => {
+    setIsLoading(true);
+    setError("");
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "discord",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    
+    if (error) {
+      setError(error.message);
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,58 +75,77 @@ function LoginForm() {
     // Check if identifier is not an email (no @ symbol)
     if (!identifier.includes("@")) {
       // It's a username, lookup the email from profiles
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
-      
+      // First try to get email from profiles table
       const { data: profile, error: lookupError } = await supabase
         .from("profiles")
-        .select("email")
+        .select("id, email, username")
         .eq("username", identifier)
         .single();
       
-      if (lookupError || !profile || !profile.email) {
-        setError("Username tidak ditemukan atau tidak memiliki email terdaftar");
+      console.log("Username lookup result:", { profile, lookupError });
+      
+      if (lookupError || !profile) {
+        setError("Username tidak ditemukan");
         setIsLoading(false);
         return;
       }
 
-      loginEmail = profile.email;
+      // If email exists in profile, use it
+      if (profile.email) {
+        loginEmail = profile.email;
+      } else {
+        // Email not in profiles, try to get from auth.users via the profile id
+        // Since we can't directly query auth.users, we need the user to login with email
+        setError("Akun ini tidak memiliki email. Silakan hubungi admin untuk update email di profil Anda, atau gunakan email langsung untuk login.");
+        setIsLoading(false);
+        return;
+      }
     }
 
-    const { error } = await signIn(loginEmail, password);
+    console.log("Attempting login with email:", loginEmail);
     
-    if (error) {
-      setError(error);
+    const { error: signInError } = await signIn(loginEmail, password);
+    
+    if (signInError) {
+      console.log("Sign in error:", signInError);
+      setError(signInError);
       setIsLoading(false);
       return;
     }
 
-    // Wait for profile to be loaded after signIn
-    // Check user role from profile to determine redirect
+    // Wait for session to be fully established
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Check for custom redirect
     const customRedirect = searchParams.get("redirect");
     if (customRedirect) {
       router.push(customRedirect);
       return;
     }
 
-    // Fetch profile to check role
-    const { createClient } = await import("@/lib/supabase/client");
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    // Fetch fresh user and profile to check role
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    console.log("Current user after login:", { user, userError });
     
     if (user) {
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, username")
         .eq("id", user.id)
         .single();
       
+      console.log("Profile role check:", { profile, profileError });
+      
       if (profile?.role === "admin" || profile?.role === "superadmin") {
+        console.log("Redirecting to admin dashboard");
         router.push("/admin");
       } else {
+        console.log("Redirecting to user dashboard");
         router.push("/dashboard");
       }
     } else {
+      console.log("No user found, redirecting to dashboard");
       router.push("/dashboard");
     }
   };
@@ -213,9 +269,15 @@ function LoginForm() {
             </div>
           </div>
 
-          {/* Social Login */}
+          {/* Social Login - Now Functional */}
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" type="button" className="gap-2">
+            <Button 
+              variant="outline" 
+              type="button" 
+              className="gap-2"
+              onClick={handleGoogleLogin}
+              disabled={isLoading}
+            >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
                   fill="currentColor"
@@ -236,7 +298,13 @@ function LoginForm() {
               </svg>
               Google
             </Button>
-            <Button variant="outline" type="button" className="gap-2">
+            <Button 
+              variant="outline" 
+              type="button" 
+              className="gap-2"
+              onClick={handleDiscordLogin}
+              disabled={isLoading}
+            >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" />
               </svg>
