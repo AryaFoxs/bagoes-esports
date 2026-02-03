@@ -29,11 +29,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = async (userId: string) => {
     if (!supabase) return;
     
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single();
+
+    if (error && error.code === "PGRST116") {
+      // Profile not found, create one from user metadata
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: newProfile, error: createError } = await supabase
+          .from("profiles")
+          .insert({
+            id: user.id,
+            username: user.user_metadata?.username || user.email?.split("@")[0],
+            full_name: user.user_metadata?.full_name || "",
+            role: "user",
+          })
+          .select()
+          .single();
+        
+        if (!createError) {
+          data = newProfile;
+          error = null as any;
+        }
+      }
+    }
 
     if (!error && data) {
       setProfile(data);

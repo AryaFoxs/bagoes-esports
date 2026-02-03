@@ -18,7 +18,7 @@ export const events: Event[] = [
     maxParticipants: 64,
     currentParticipants: 64,
     prizePool: "$60,000,000",
-    image: "/event/tournament/EWC 2025.webp",
+    image: "/event/tournament/EWC-2025.webp",
     streamUrl: "https://twitch.tv/esportsworldcup",
     registrationDeadline: "2024-12-25T23:59:00",
   },
@@ -37,7 +37,7 @@ export const events: Event[] = [
     maxParticipants: 16,
     currentParticipants: 16,
     prizePool: "$3,000,000",
-    image: "/event/tournament/Mobile Legends M7.jpg",
+    image: "/event/tournament/Mobile-Legends-M7.jpg",
     registrationDeadline: "2026-01-10T23:59:00",
   },
   {
@@ -55,7 +55,7 @@ export const events: Event[] = [
     maxParticipants: 24,
     currentParticipants: 20,
     prizePool: "$500,000",
-    image: "/event/tournament/FFWS SEA 2025.webp",
+    image: "/event/tournament/FFWS-SEA-2025.webp",
     registrationDeadline: "2025-01-28T23:59:00",
   },
   {
@@ -73,7 +73,7 @@ export const events: Event[] = [
     maxParticipants: 48,
     currentParticipants: 48,
     prizePool: "$4,000,000",
-    image: "/event/tournament/PMGC 2025.webp",
+    image: "/event/tournament/PMGC-2025.webp",
     registrationDeadline: "2025-02-25T23:59:00",
   },
   {
@@ -91,7 +91,7 @@ export const events: Event[] = [
     maxParticipants: 16,
     currentParticipants: 16,
     prizePool: "$2,000,000",
-    image: "/event/tournament/Mobile Legends M6.png",
+    image: "/event/tournament/Mobile-Legends-M6.png",
     registrationDeadline: "2024-11-25T23:59:00",
   },
   // === KASUAL/CASUAL EVENTS ===
@@ -110,7 +110,7 @@ export const events: Event[] = [
     maxParticipants: 200,
     currentParticipants: 156,
     prizePool: "Rp 100.000.000",
-    image: "/event/kasual/Liga Mahasiswa 2025.avif",
+    image: "/event/kasual/Liga-Mahasiswa-2025.avif",
     registrationDeadline: "2025-02-05T23:59:00",
   },
   {
@@ -128,7 +128,7 @@ export const events: Event[] = [
     maxParticipants: 500,
     currentParticipants: 320,
     prizePool: "Rp 50.000.000",
-    image: "/event/kasual/Liga Pelajar 2025.jpeg",
+    image: "/event/kasual/Liga-Pelajar-2025.jpeg",
     registrationDeadline: "2025-02-25T23:59:00",
   },
   {
@@ -146,7 +146,7 @@ export const events: Event[] = [
     maxParticipants: 180,
     currentParticipants: 180,
     prizePool: "Rp 75.000.000",
-    image: "/event/kasual/Liga Mahasiswa 2024.jpg",
+    image: "/event/kasual/Liga-Mahasiswa-2024.jpg",
     registrationDeadline: "2024-02-10T23:59:00",
   },
   // === MEETUP EVENTS ===
@@ -164,7 +164,7 @@ export const events: Event[] = [
     isOnline: false,
     maxParticipants: 500,
     currentParticipants: 420,
-    image: "/event/meetup/Meet and Great Onic.jpg",
+    image: "/event/meetup/Meet-and-Greet-Onic.jpg",
     registrationDeadline: "2025-01-18T23:59:00",
   },
   {
@@ -181,7 +181,7 @@ export const events: Event[] = [
     isOnline: false,
     maxParticipants: 300,
     currentParticipants: 285,
-    image: "/event/meetup/Meet and Greet VCT.jpg",
+    image: "/event/meetup/Meet-and-Greet-VCT.jpg",
     registrationDeadline: "2025-02-03T23:59:00",
   },
   {
@@ -198,7 +198,7 @@ export const events: Event[] = [
     isOnline: false,
     maxParticipants: 400,
     currentParticipants: 350,
-    image: "/event/meetup/Met and Greet Mobile Legends.jpg",
+    image: "/event/meetup/Meet-and-Greet-Mobile-Legends.jpg",
     registrationDeadline: "2025-01-25T23:59:00",
   },
   // === WORKSHOP EVENTS ===
@@ -216,7 +216,7 @@ export const events: Event[] = [
     isOnline: false,
     maxParticipants: 100,
     currentParticipants: 78,
-    image: "/event/workshop/Art of Cosplay.avif",
+    image: "/event/workshop/Art-of-Cosplay.avif",
     registrationDeadline: "2025-01-22T23:59:00",
   },
   {
@@ -233,7 +233,7 @@ export const events: Event[] = [
     isOnline: false,
     maxParticipants: 80,
     currentParticipants: 65,
-    image: "/event/workshop/Branding In Esports.jpg",
+    image: "/event/workshop/Branding-In-Esports.jpg",
     registrationDeadline: "2025-02-05T23:59:00",
   },
   {
@@ -250,7 +250,7 @@ export const events: Event[] = [
     isOnline: false,
     maxParticipants: 60,
     currentParticipants: 45,
-    image: "/event/workshop/How to Set Up The Stage.jpeg",
+    image: "/event/workshop/How-to-Set-Up-The-Stage.jpeg",
     registrationDeadline: "2025-02-12T23:59:00",
   },
   {
@@ -267,7 +267,7 @@ export const events: Event[] = [
     isOnline: false,
     maxParticipants: 50,
     currentParticipants: 38,
-    image: "/event/workshop/Nurturing Leadership in Esports.jpg",
+    image: "/event/workshop/Nurturing-Leadership-in-Esports.jpg",
     registrationDeadline: "2025-02-19T23:59:00",
   },
 ];

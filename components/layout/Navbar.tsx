@@ -78,7 +78,7 @@ export function Navbar() {
           {/* Logo */}
           <Link
             href="/"
-            className="flex items-center gap-2 group"
+            className="flex items-center gap-3 group"
           >
             <div className="w-10 h-10 rounded-lg overflow-hidden shadow-md group-hover:shadow-lg group-hover:shadow-primary/30 transition-all duration-300">
               <Image
@@ -99,7 +99,7 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-2">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (

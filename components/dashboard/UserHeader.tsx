@@ -53,7 +53,11 @@ export function UserHeader({ onMenuClick }: UserHeaderProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
-  const [userStats, setUserStats] = useState<UserStats>({ level: 1, xp: 0, rank: "Bronze" });
+  const userStats = useMemo(() => ({
+    level: profile?.level || 1,
+    xp: profile?.xp || 0,
+    rank: profile?.rank || "Bronze",
+  }), [profile]);
 
   // Fetch notifications
   useEffect(() => {
@@ -97,17 +101,6 @@ export function UserHeader({ onMenuClick }: UserHeaderProps) {
       supabase.removeChannel(channel);
     };
   }, [supabase, user]);
-
-  // Fetch user stats from profile (as user_stats table may not exist)
-  useEffect(() => {
-    if (profile) {
-      setUserStats({
-        level: profile.level || 1,
-        xp: profile.xp || 0,
-        rank: profile.rank || "Bronze",
-      });
-    }
-  }, [profile]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);

@@ -1,0 +1,231 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  user
+  admin
+  superadmin
+}
+
+enum EventType {
+  tournament
+  casual
+  meetup
+  workshop
+}
+
+enum EventStatus {
+  upcoming
+  live
+  completed
+  cancelled
+}
+
+enum TournamentFormat {
+  single_elimination
+  double_elimination
+  round_robin
+  swiss
+  battle_royale
+}
+
+model Profile {
+  id            String    @id // This will be the Supabase Auth user id (UUID)
+  username      String?   @unique
+  email         String?   @unique
+  fullName      String?   @map("full_name")
+  avatarUrl     String?   @map("avatar_url")
+  role          Role      @default(user)
+  level         Int       @default(1)
+  xp            Int       @default(0)
+  rank          String    @default("Bronze")
+  bio           String?
+  location      String?
+  socialLinks   Json?     @default("{}") @map("social_links")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  teams         TeamMember[]
+  articles      Article[]
+  notifications Notification[]
+  teamInvites   TeamInvite[]
+  registrations EventRegistration[]
+
+  @@map("profiles")
+}
+
+model Event {
+  id                  String      @id @default(cuid())
+  slug                String      @unique
+  title               String
+  description         String?     @db.Text
+  game                String
+  type                EventType   @default(tournament)
+  status              EventStatus @default(upcoming)
+  startDate           DateTime    @map("start_date")
+  endDate             DateTime?   @map("end_date")
+  location            String?
+  isOnline            Boolean     @default(false) @map("is_online")
+  maxParticipants     Int?        @map("max_participants")
+  currentParticipants Int         @default(0) @map("current_participants")
+  prizePool           String?     @map("prize_pool")
+  image               String?
+  streamUrl           String?     @map("stream_url")
+  registrationDeadline DateTime?  @map("registration_deadline")
+  rules               String[]
+  format              TournamentFormat?
+  entryFee            String?     @map("entry_fee")
+  
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  registrations       EventRegistration[]
+
+  @@map("events")
+}
+
+model Team {
+  id              String       @id @default(cuid())
+  name            String       @unique
+  slug            String       @unique
+  game            String
+  logo            String?
+  banner          String?
+  description     String?      @db.Text
+  founded         String?
+  region          String?
+  socialLinks     Json?        @default("{}") @map("social_links")
+  isRecruiting    Boolean      @default(false) @map("is_recruiting")
+  recruitingRoles String[]     @map("recruiting_roles")
+  
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  members         TeamMember[]
+  achievements    Achievement[]
+  invites         TeamInvite[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String   @map("team_id")
+  profileId String   @map("profile_id")
+  role      String   // e.g., Captain, Member, Analyst
+  nickname  String?
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, profileId])
+  @@map("team_members")
+}
+
+model TeamInvite {
+  id        String   @id @default(cuid())
+  teamId    String   @map("team_id")
+  profileId String   @map("profile_id")
+  role      String   @default("Member")
+  status    String   @default("pending") // pending, accepted, rejected
+  createdAt DateTime @default(now()) @map("created_at")
+
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, profileId])
+  @@map("team_invites")
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  teamId      String   @map("team_id")
+  title       String
+  tournament  String
+  date        DateTime
+  placement   String
+
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("achievements")
+}
+
+model EventRegistration {
+  id            String   @id @default(cuid())
+  eventId       String   @map("event_id")
+  userId        String   @map("user_id")
+  teamId        String?  @map("team_id")
+  status        String   @default("pending") // pending, confirmed, cancelled
+  registeredAt  DateTime @default(now()) @map("registered_at")
+
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  profile       Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@map("event_registrations")
+}
+
+model Community {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?  @db.Text
+  game        String
+  memberCount Int      @default(0) @map("member_count")
+  image       String?
+  isOpen      Boolean  @default(true) @map("is_open")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("communities")
+}
+
+model Article {
+  id          String   @id @default(cuid())
+  slug                String      @unique
+  title               String
+  excerpt             String?     @db.Text
+  content             String?     @db.Text
+  category            String
+  authorId            String      @map("author_id")
+  publishedAt         DateTime    @default(now()) @map("published_at")
+  image               String?
+  tags                String[]
+  readTime            Int         @default(0) @map("read_time")
+
+  author              Profile     @relation(fields: [authorId], references: [id])
+  
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  @@map("articles")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  profileId String   @map("profile_id")
+  type      String   // event, team, reward, alert, success, etc.
+  title      String
+  message    String   @db.Text
+  isRead     Boolean  @default(false) @map("is_read")
+  link       String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
