@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  /* config options here */
+const nextConfig: any = {
+  // Turbopack options or other Next 16 configs
 };
 
 export default nextConfig;
